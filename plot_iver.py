@@ -43,6 +43,11 @@ def parse_config(config_file: str, keys: List[str]):
                 if key in line:
                     value = float(line[line.find(" = ") + 3:-1])
                     config[key] = value
+
+    for key in keys:
+        if key not in config.keys():
+            config[key] = float("NaN")
+
     return config
 
 def log_to_df(log_file: str) -> pd.DataFrame:
@@ -141,7 +146,7 @@ def plot_elevator_rudder_v_roll(df: pd.DataFrame) -> Tuple[plt.Figure, plt.Axes]
     rollPlot.set(xlabel='sec',ylabel='deg')
     rollPlot.grid(which='both',axis='both')
 
-    rollrate = np.gradient(df.roll)
+    rollrate = np.gradient(df.roll) / np.gradient(df.elapsedTime)
     rollrateplot = axs[3, 0]
     rollrateplot.plot(df.elapsedTime, rollrate)
     rollrateplot.set_title('Numerical Derivative of Roll')
