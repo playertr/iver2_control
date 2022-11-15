@@ -121,7 +121,7 @@ def fillOutliers(rawData: np.ndarray) -> np.ndarray:
 
 def plot_elevator_rudder_v_roll(df: pd.DataFrame) -> Tuple[plt.Figure, plt.Axes]:
     """Make plots of elevator and rudder inputs, roll and roll rate outputs. Make scatter plots of elevator and rudder values versus roll rate."""
-    fig, axs = plt.subplots(6, 1, figsize=(10, 12), squeeze=False, tight_layout=True)
+    fig, axs = plt.subplots(7, 1, figsize=(10, 14), squeeze=False, tight_layout=True)
 
     elevatorsPlot = axs[0, 0]
     elevatorsPlot.plot(df.elapsedTime, df.portElevator, color='b',label='port')
@@ -140,20 +140,27 @@ def plot_elevator_rudder_v_roll(df: pd.DataFrame) -> Tuple[plt.Figure, plt.Axes]
     ruddersPlot.set(xlabel='sec',ylabel='deg')
     ruddersPlot.grid(which='both',axis='both')
 
-    rollPlot = axs[2, 0]
+    rpmPlot = axs[2, 0]
+    rpmPlot.plot(df.elapsedTime, df.propSpeed)
+    rpmPlot.set_ylim([-2_000, 20_000])
+    rpmPlot.set_title('Prop Speed (Motor RPM)')
+    rpmPlot.set(xlabel='sec',ylabel='RPM')
+    rpmPlot.grid(which='both',axis='both')
+
+    rollPlot = axs[3, 0]
     rollPlot.plot(df.elapsedTime, df.roll)
     rollPlot.set_title('Roll')
     rollPlot.set(xlabel='sec',ylabel='deg')
     rollPlot.grid(which='both',axis='both')
 
     rollrate = np.gradient(df.roll) / np.gradient(df.elapsedTime)
-    rollrateplot = axs[3, 0]
+    rollrateplot = axs[4, 0]
     rollrateplot.plot(df.elapsedTime, rollrate)
     rollrateplot.set_title('Numerical Derivative of Roll')
     rollrateplot.set(xlabel='sec',ylabel='deg/sec')
     rollrateplot.grid(which='both',axis='both')
 
-    elevrrPlot = axs[4, 0]
+    elevrrPlot = axs[5, 0]
     elevrrPlot.scatter(df.stbdElevator, rollrate, color='r',label='stbd')
     elevrrPlot.scatter(df.portElevator, rollrate, color='b',label='port')
     elevrrPlot.legend(bbox_to_anchor=(1.04, 1), loc="upper left")
@@ -161,7 +168,7 @@ def plot_elevator_rudder_v_roll(df: pd.DataFrame) -> Tuple[plt.Figure, plt.Axes]
     elevrrPlot.set(xlabel='deg',ylabel='deg/sec')
     elevrrPlot.grid(which='both',axis='both')
 
-    ruddersrPlot = axs[5, 0]
+    ruddersrPlot = axs[6, 0]
     ruddersrPlot.scatter(df.upperRudder, rollrate, color='b',label='upper')
     ruddersrPlot.scatter(df.lowerRudder, rollrate, color='r',label='lower')
     ruddersrPlot.legend(bbox_to_anchor=(1.04, 1), loc="upper left")
@@ -176,7 +183,7 @@ def plot_inputs_outputs(df: pd.DataFrame) -> Tuple[plt.Figure, plt.Axes]:
     Left column: inputs. Rudders, fins, thrust.
     Right column: outputs. Pitch/roll, heading, speed.
     """
-    fig, axs = plt.subplots(3, 2, figsize=(10, 5), tight_layout=True)
+    fig, axs = plt.subplots(4, 2, figsize=(10, 7), tight_layout=True)
 
     ruddersPlot = axs[0, 0]
     ruddersPlot.plot(df.elapsedTime, df.upperRudder, color='b',label='upper')
@@ -206,6 +213,7 @@ def plot_inputs_outputs(df: pd.DataFrame) -> Tuple[plt.Figure, plt.Axes]:
     hdgPlot = axs[0, 1]
     hdgPlot.plot(df.elapsedTime, df.heading, color='r', label='actual')
     hdgPlot.plot(df.elapsedTime, df.targetHeading, color='b', label='target')
+    hdgPlot.set_ylim([0, 360])
     hdgPlot.legend(bbox_to_anchor=(1.04, 1), loc="upper left")
     hdgPlot.set_title('Heading')
     hdgPlot.set(xlabel='sec',ylabel='deg')
@@ -213,8 +221,8 @@ def plot_inputs_outputs(df: pd.DataFrame) -> Tuple[plt.Figure, plt.Axes]:
 
     # Pitch & Roll
     pitchRollPlot = axs[1, 1]
-    pitchRollPlot.plot(df.elapsedTime, df.pitch, color='r',label='roll')
-    pitchRollPlot.plot(df.elapsedTime, df.roll, color='b',label='pitch')
+    pitchRollPlot.plot(df.elapsedTime, df.roll, color='r',label='roll')
+    pitchRollPlot.plot(df.elapsedTime, df.pitch, color='b',label='pitch')
     pitchRollPlot.legend(bbox_to_anchor=(1.04, 1), loc="upper left")
     pitchRollPlot.set_title('Pitch & Roll')
     pitchRollPlot.set(xlabel='sec',ylabel='deg')
@@ -230,6 +238,17 @@ def plot_inputs_outputs(df: pd.DataFrame) -> Tuple[plt.Figure, plt.Axes]:
     speedPlot.set_title('Speed')
     speedPlot.set(xlabel='sec',ylabel='m/s')
     speedPlot.grid(which='both',axis='both')
+
+    # Depth
+    depthPlot = axs[3, 0]
+    depthPlot.plot(df.elapsedTime, df.depth, color='r', label='actual')
+    depthPlot.plot(df.elapsedTime, df.targetDepth, color='b', label='target')
+    depthPlot.set_ylim([0, 5])
+    depthPlot.legend(bbox_to_anchor=(1.04, 1), loc="upper left")
+    depthPlot.set_title('Depth')
+    depthPlot.set(xlabel='sec',ylabel='meters')
+    depthPlot.grid(which='both',axis='both')
+    depthPlot.invert_yaxis()
 
     fig.subplots_adjust(hspace=0.5)
     fig.tight_layout()
@@ -273,8 +292,8 @@ def plot_data(df: pd.DataFrame) -> None:
     attFig.suptitle('Attitude', fontsize=14,fontweight='bold')
     # Pitch & Roll
     pitchRollPlot = attPlots[0]
-    pitchRollPlot.plot(df.elapsedTime, df.pitch, color='r',label='roll')
-    pitchRollPlot.plot(df.elapsedTime, df.roll, color='b',label='pitch')
+    pitchRollPlot.plot(df.elapsedTime, df.pitch, color='r',label='pitch')
+    pitchRollPlot.plot(df.elapsedTime, df.roll, color='b',label='roll')
     pitchRollPlot.legend(loc="upper right")
     pitchRollPlot.set_title('Pitch & Roll')
     pitchRollPlot.set(xlabel='sec',ylabel='deg')
