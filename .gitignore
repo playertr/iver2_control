@@ -1,6 +1,3 @@
 /.ipynb_checkpoints
-/Iver Data Headings.txt
-/__pycache__
-/iverControlLogs
-/plotIver.py
-/plot_iver.ipynb
+*.pyc
+.DS_Store
