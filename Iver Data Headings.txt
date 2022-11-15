@@ -1,0 +1,40 @@
+elapsedTime = data[:,0] # sec
+lat = data[:,1] # deg
+lon = data[:,2] # deg
+depth = data[:,3] # m
+roll = data[:,4] # deg
+pitch = data[:,5] # deg
+heading = data[:,6] # deg
+targetHeading = data[:,7] # deg
+targetSpeed = data[:,8] # m/s  (what is this?)
+targetDepth = data[:,9] # m
+vX = data[:,10] # m/s
+vY = data[:,11] # m/s
+vZ = data[:,12] # m/s
+upperRudder = data[:,13] # deg
+lowerRudder = data[:,14] # deg
+portElevator = data[:,15] # deg
+stbdElevator = data[:,16] # deg
+propPower = data[:,17] # percent
+propCurrent = data[:,18] # amps
+propSpeed = data[:,19] # RPM (motor mechanical)
+rudderMode = data[:,20] # 0=manual,1=headingControl
+elevMode = data[:,21]   # 0=manual,1=depthControl
+propMode = data[:,22]   # 0=manual,1=speedControl
+leakDetect = data[:,23] # 0/1 = no leak/l
+eak
+battTemp = data[:,24] # battery temp, degC
+battVolt = data[:,25] # battery voltage, V
+battCurr = data[:,26] # battery current, A
+battSOC = data[:,27]  # state of charge
+totalCurrent = data[:,28]
+temp1 = data[:,29]
+temp2 = data[:,30]
+temp3 = data[:,31]
+abortingVariable = data[:,32] # 0 or 1
+accelerationX = data[:,33] # 
+accelerationY = data[:,34]
+accelerationZ = data[:,35]
+
+
+
