@@ -34,9 +34,20 @@ def prepare_data(log_file: str) -> pd.DataFrame:
 
     return df
 
-def log_to_df(log_file: str) -> pd.DataFrame:
+def parse_config(config_file: str, keys: List[str]):
+    """Extract relevant parameter values from a config file"""
+    config = {}
+    with open(config_file, "r") as f:
+        for line in f.readlines():
+            for key in keys:
+                if key in line:
+                    value = float(line[line.find(" = ") + 3:-1])
+                    config[key] = value
+    return config
 
-    names = [ # these should actually live in the CSV
+def log_to_df(log_file: str) -> pd.DataFrame:
+    """Read in a log file as a Pandas DataFrame"""
+    names = [ # could parse these from Headings.txt
         "elapsedTime", # sec
         "lat", # deg
         "lon", # deg
@@ -85,7 +96,7 @@ def log_to_df(log_file: str) -> pd.DataFrame:
     return df # may contain NaN, at start of vX, vY, vZ
 
 def fillOutliers(rawData: np.ndarray) -> np.ndarray:
-
+    """Remove outliers from timeseries data."""
     # Determine good entries (abs zscore < 3)
     zScores = scipy.stats.zscore(rawData)
     good = np.where(np.abs(zScores)<3)
@@ -103,12 +114,64 @@ def fillOutliers(rawData: np.ndarray) -> np.ndarray:
     # Return the result
     return filteredData
 
-def plot_inputs_outputs(df: pd.DataFrame) -> None:
+def plot_elevator_rudder_v_roll(df: pd.DataFrame) -> Tuple[plt.Figure, plt.Axes]:
+    """Make plots of elevator and rudder inputs, roll and roll rate outputs. Make scatter plots of elevator and rudder values versus roll rate."""
+    fig, axs = plt.subplots(6, 1, figsize=(10, 12), squeeze=False, tight_layout=True)
+
+    elevatorsPlot = axs[0, 0]
+    elevatorsPlot.plot(df.elapsedTime, df.portElevator, color='b',label='port')
+    elevatorsPlot.plot(df.elapsedTime, df.stbdElevator, color='r',label='stbd')
+    elevatorsPlot.legend(bbox_to_anchor=(1.04, 1), loc="upper left")
+    elevatorsPlot.set_title('Elevators')
+    elevatorsPlot.set(xlabel='sec',ylabel='deg')
+    elevatorsPlot.grid(which='both',axis='both')
+
+
+    ruddersPlot = axs[1, 0]
+    ruddersPlot.plot(df.elapsedTime, df.upperRudder, color='b',label='upper')
+    ruddersPlot.plot(df.elapsedTime, df.lowerRudder, color='r',label='lower')
+    ruddersPlot.legend(bbox_to_anchor=(1.04, 1), loc="upper left")
+    ruddersPlot.set_title('Rudders')
+    ruddersPlot.set(xlabel='sec',ylabel='deg')
+    ruddersPlot.grid(which='both',axis='both')
+
+    rollPlot = axs[2, 0]
+    rollPlot.plot(df.elapsedTime, df.roll)
+    rollPlot.set_title('Roll')
+    rollPlot.set(xlabel='sec',ylabel='deg')
+    rollPlot.grid(which='both',axis='both')
+
+    rollrate = np.gradient(df.roll)
+    rollrateplot = axs[3, 0]
+    rollrateplot.plot(df.elapsedTime, rollrate)
+    rollrateplot.set_title('Numerical Derivative of Roll')
+    rollrateplot.set(xlabel='sec',ylabel='deg/sec')
+    rollrateplot.grid(which='both',axis='both')
+
+    elevrrPlot = axs[4, 0]
+    elevrrPlot.scatter(df.stbdElevator, rollrate, color='r',label='stbd')
+    elevrrPlot.scatter(df.portElevator, rollrate, color='b',label='port')
+    elevrrPlot.legend(bbox_to_anchor=(1.04, 1), loc="upper left")
+    elevrrPlot.set_title('Elevator vs. Numerical Derivative of Roll')
+    elevrrPlot.set(xlabel='deg',ylabel='deg/sec')
+    elevrrPlot.grid(which='both',axis='both')
+
+    ruddersrPlot = axs[5, 0]
+    ruddersrPlot.scatter(df.upperRudder, rollrate, color='b',label='upper')
+    ruddersrPlot.scatter(df.lowerRudder, rollrate, color='r',label='lower')
+    ruddersrPlot.legend(bbox_to_anchor=(1.04, 1), loc="upper left")
+    ruddersrPlot.set_title('Rudder vs. Numerical Derivative of Roll')
+    ruddersrPlot.set(xlabel='deg',ylabel='deg/sec')
+    ruddersrPlot.grid(which='both',axis='both')
+
+    return fig, axs
+
+def plot_inputs_outputs(df: pd.DataFrame) -> Tuple[plt.Figure, plt.Axes]:
     """ Plot inputs and outputs.
     Left column: inputs. Rudders, fins, thrust.
     Right column: outputs. Pitch/roll, heading, speed.
     """
-    fig, axs = plt.subplots(3, 2, figsize=(10, 5))
+    fig, axs = plt.subplots(3, 2, figsize=(10, 5), tight_layout=True)
 
     ruddersPlot = axs[0, 0]
     ruddersPlot.plot(df.elapsedTime, df.upperRudder, color='b',label='upper')
@@ -129,7 +192,7 @@ def plot_inputs_outputs(df: pd.DataFrame) -> None:
     # RPM
     rpmPlot = axs[2, 0]
     rpmPlot.plot(df.elapsedTime, df.propSpeed)
-    rpmPlot.set_ylim([0, 20_000])
+    rpmPlot.set_ylim([-2_000, 20_000])
     rpmPlot.set_title('Prop Speed (Motor RPM)')
     rpmPlot.set(xlabel='sec',ylabel='RPM')
     rpmPlot.grid(which='both',axis='both')
@@ -169,6 +232,7 @@ def plot_inputs_outputs(df: pd.DataFrame) -> None:
     return fig, axs
 
 def plot_data(df: pd.DataFrame) -> None:
+    """Make all the plots from Pete's original script."""
 
     # ---------------------------------------------------------------
     # Depth & speed
@@ -312,10 +376,11 @@ def plot_data(df: pd.DataFrame) -> None:
 
 
 def rpy_to_rotmat(r, p, y):
+    """Convert roll pitch yaw to rotation matrix."""
     return R.from_euler('zyx', [r, p, y], degrees=True).as_matrix()
 
-def calculate_6dof_traj(df: pd.DataFrame) -> None:
-
+def calculate_6dof_traj(df: pd.DataFrame) -> np.ndarray:
+    """Use roll, pitch, and yaw to create a 6-DOF trajectory of homogeneous matrices for visualization. Work in progress. """
     N = len(df)
     poses = np.zeros((4, 4, N))
     for i in range(len(df)):
@@ -326,6 +391,7 @@ def calculate_6dof_traj(df: pd.DataFrame) -> None:
     return poses
 
 def plot_poses(poses: np.ndarray):
+    """Plot a 6-DOF trajectory."""
     ims = []
     fig, ax = plt.subplots(subplot_kw=dict(projection="3d"))
     _4, __4, N = poses.shape
@@ -338,6 +404,7 @@ def plot_poses(poses: np.ndarray):
     plt.show()
 
 if __name__ == "__main__":
+    """Reproduce descriptive plots from Pete's original script, for a single log file."""
 
     # Parse command line args
     parser = argparse.ArgumentParser()
